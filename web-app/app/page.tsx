@@ -1,5 +1,4 @@
 'use client'
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import Web3 from "web3";
 import buyEarthAbi from './abis/buyEarthAbi.json';
@@ -12,13 +11,24 @@ declare global {
 
 export default function Home() {
   const contractABI = buyEarthAbi;
-  const contractAddress = "0x014F49968F6C6d5Ecc507aFe14771385e8c8bB85"; // Replace with actual address
+  const contractAddress = "0x014F49968F6C6d5Ecc507aFe14771385e8c8bB85";
   const [squares, setSquares] = useState<Number[]>([])
   const [selectedColor, setSelectedColor] = useState(0)
+  const [web3, setWeb3] = useState<Web3 | null>(null)
 
-  async function getSquaresData() {
+  useEffect(() => {
+    console.log('window', window)
+    if (typeof window !== 'undefined' && window.ethereum) {
+      const tempWeb3 = new Web3(window.ethereum)
+      getSquaresData(tempWeb3);
+      setWeb3(tempWeb3)
+    }
+  }, [])
+
+  async function getSquaresData(web3: Web3) {
     try {
-      const web3 = new Web3("http://localhost:8545");
+      console.log('get', web3)
+      if (!web3) return;
       const contract = new web3.eth.Contract(contractABI, contractAddress);
       const squares = await contract.methods.getSquares().call();
       console.log("Squares data:", squares);
@@ -28,32 +38,17 @@ export default function Home() {
     }
   }
 
-  useEffect(() => {
-    getSquaresData();
-  }, []);
-
   const buySquare = async (idx: number) => {
     // const color = Math.floor(Math.random() * 16777215); // Random hex color
     const color = selectedColor;
     try {
-      // const web3 = new Web3("http://localhost:8545");
-      // const contract = new web3.eth.Contract(contractABI, contractAddress);
-      // const accounts = await web3.eth.getAccounts();
-      // console.log('accounts', accounts)
-      // console.log('contract', contract)
-      if (!window.ethereum) {
+      if (!web3) {
         alert('请安装 MetaMask!');
         return;
       }
 
       // 请求用户连接 MetaMask
-      await window.ethereum.request({
-        method: 'eth_requestAccounts'
-      });
-
-      // 使用 MetaMask 提供的 provider
-      const web3 = new Web3(window.ethereum);
-      // const web3 = new Web3("http://localhost:8545");
+      await web3.eth.requestAccounts();
 
       const contract = new web3.eth.Contract(contractABI, contractAddress);
       const accounts = await web3.eth.getAccounts();
@@ -62,15 +57,15 @@ export default function Home() {
         value: web3.utils.toWei('0.01', 'ether')
       });
       console.log('tx', tx)
-      await getSquaresData();
+      await getSquaresData(web3);
     } catch (error) {
       console.error("Error buying square:", error);
     }
   }
 
   return (
-    <div className="min-h-screen gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
+    <div className="min-h-screen font-[family-name:var(--font-geist-sans)]">
+      <main className="flex flex-col gap-[32px] row-start-2 items-center">
         <div className="flex flex-col items-center gap-4">
           <h3 className="text-lg font-medium">选择颜色</h3>
           <div className="grid grid-cols-10 gap-2">
