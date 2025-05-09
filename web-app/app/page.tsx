@@ -11,7 +11,8 @@ declare global {
 
 export default function Home() {
   const contractABI = buyEarthAbi;
-  const contractAddress = "0x014F49968F6C6d5Ecc507aFe14771385e8c8bB85";
+  // const contractAddress = "0x014F49968F6C6d5Ecc507aFe14771385e8c8bB85";
+  const contractAddress = "0x57dEa92D2270D038b983B7FCF4301036d63eB245";
   const [squares, setSquares] = useState<Number[]>([])
   const [selectedColor, setSelectedColor] = useState(0)
   const [web3, setWeb3] = useState<Web3 | null>(null)
@@ -22,14 +23,36 @@ export default function Home() {
       const tempWeb3 = new Web3(window.ethereum)
       getSquaresData(tempWeb3);
       setWeb3(tempWeb3)
+
+      // 事件监听
+      const contract = new tempWeb3.eth.Contract(contractABI, contractAddress);
+      const handleBuySquare = (buyer: string, idx: string, color: string) => {
+        // 事件参数为 string，需要转为 number
+        getSquaresData(tempWeb3);
+      };
+      contract.events.BuySquare({})
+        .on('data', (event: any) => {
+          const { buyer, idx, color } = event.returnValues;
+          handleBuySquare(buyer, idx, color);
+        })
+        // .on('error', (error: any) => {
+        //   console.error('BuySquare event error:', error);
+        // });
+
+      // 清理函数，组件卸载时移除监听
+      return () => {
+        // contract.removeAllListeners('BuySquare');
+        contract.removeAllListeners();
+      };
     }
   }, [])
 
   async function getSquaresData(web3: Web3) {
     try {
-      console.log('get', web3)
+      console.log('ABI:', contractABI);
       if (!web3) return;
       const contract = new web3.eth.Contract(contractABI, contractAddress);
+      console.log('Contract methods:', contract.methods);
       const squares = await contract.methods.getSquares().call();
       console.log("Squares data:", squares);
       setSquares(squares || [])

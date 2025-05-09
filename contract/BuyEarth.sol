@@ -7,6 +7,8 @@ contract BuyEarth {
     address private owner;
     uint[100] private squares;
 
+    event BuySquare(address indexed buyer, uint indexed idx, uint color);
+
     constructor() {
         owner = msg.sender;
     }
@@ -25,5 +27,6 @@ contract BuyEarth {
         (bool sent, ) = owner.call{value: msg.value}("");
         require(sent, "Failed to sent Ehter");
         squares[idx] = color;
+        emit BuySquare(msg.sender, idx, color);
     }
 }
